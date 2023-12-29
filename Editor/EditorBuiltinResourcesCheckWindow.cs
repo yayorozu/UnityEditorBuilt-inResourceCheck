@@ -18,6 +18,7 @@ namespace Yorozu.EditorTool
 
         [SerializeField]
         private Texture[] _textures;
+        private List<GUIStyle> _editorGUIStyles;
         
         private Vector2 _scrollPosition;
         
@@ -54,7 +55,7 @@ namespace Yorozu.EditorTool
         {
             _textures = null;
         }
-
+        
         private void OnGUI()
         {
             using (new EditorGUILayout.HorizontalScope(EditorStyles.toolbar))
@@ -62,7 +63,10 @@ namespace Yorozu.EditorTool
                 _tabIndex = GUILayout.Toolbar(_tabIndex, _tabToggles, new GUIStyle(EditorStyles.toolbarButton),
                     GUI.ToolbarButtonSize.FitToContents);
 
-                _sizeRate = GUILayout.HorizontalSlider(_sizeRate, 0f, 1f, GUILayout.Width(100));
+                if (_tabIndex == 0)
+                {
+                    _sizeRate = GUILayout.HorizontalSlider(_sizeRate, 0f, 1f, GUILayout.Width(100));
+                }
             }
 
             if (_tabIndex == 0)
@@ -71,16 +75,16 @@ namespace Yorozu.EditorTool
             }
             else if (_tabIndex == 1)
             {
-                
+                DrawGUIStyle();
             }
         }
 
         private void DrawTexture()
         {
             var windowWidth = position.width - 10f;
-            var size = Mathf.Lerp(_sizeRange.x, _sizeRange.y, _sizeRate);
-            var rowCount = Mathf.FloorToInt(windowWidth / (size + 10));
-            var totalSpace = windowWidth - rowCount * size; 
+            var gridSize = Mathf.Lerp(_sizeRange.x, _sizeRange.y, _sizeRate);
+            var rowCount = Mathf.FloorToInt(windowWidth / (gridSize + 10));
+            var totalSpace = windowWidth - rowCount * gridSize; 
             var margin = totalSpace / (rowCount + 1);
             var loopCount = Mathf.CeilToInt(_textures.Length / (float)rowCount);
             float height = 0;
@@ -91,7 +95,7 @@ namespace Yorozu.EditorTool
                 for (var i = 0; i < loopCount; i++)
                 {
                     // GetRect
-                    var rect = GUILayoutUtility.GetRect(windowWidth - 14, size);
+                    var rect = GUILayoutUtility.GetRect(windowWidth - 14, gridSize);
                     for (int j = 0; j < rowCount; j++)
                     {
                         int index = i * rowCount + j;
@@ -105,7 +109,7 @@ namespace Yorozu.EditorTool
                         {
                             width = Mathf.Min(
                                 Mathf.Max(texture.width, EditorGUIUtility.singleLineHeight),
-                                size
+                                gridSize
                             );
                             height = texture.height * width / texture.width;                            
                         }
@@ -113,12 +117,12 @@ namespace Yorozu.EditorTool
                         {
                             height = Mathf.Min(
                                 Mathf.Max(texture.height, EditorGUIUtility.singleLineHeight),
-                                size
+                                gridSize
                             );
                             width = texture.width * height / texture.height;
                         }
 
-                        rect.xMin = margin + j * (size + margin);
+                        rect.xMin = margin + j * (gridSize + margin);
                         rect.height = height;
                         rect.width = width;
 
@@ -130,6 +134,47 @@ namespace Yorozu.EditorTool
                         }
 
                         GUI.DrawTexture(rect, texture, ScaleMode.StretchToFill);
+                    }
+                }
+            }
+        }
+
+        private void DrawGUIStyle()
+        {
+            if (_editorGUIStyles == null || _editorGUIStyles.Count == 0)
+            {
+                _editorGUIStyles = new List<GUIStyle>();
+                var e = GUI.skin.GetEnumerator();
+                while (e.MoveNext())
+                {
+                    try
+                    {
+                        _editorGUIStyles.Add(e.Current as GUIStyle);
+                    }
+                    catch
+                    {
+                        // ignored
+                    }
+                }
+            }
+
+            var width = GUILayout.Width(300f);
+            var label = "GUIStyle";
+            using (var scroll = new GUILayout.ScrollViewScope(_scrollPosition))
+            {
+                _scrollPosition = scroll.scrollPosition;
+                foreach (var style in _editorGUIStyles)
+                {
+                    using (new EditorGUILayout.HorizontalScope("box"))
+                    {
+                        if (GUILayout.Button(style.name, EditorStyles.label, width))
+                        {
+                            Debug.Log(style.name);
+                        }
+
+                        GUILayout.Button(GUIContent.none, style, GUILayout.ExpandHeight(true), GUILayout.ExpandWidth(true));
+                        GUILayout.Space(5);
+                        GUILayout.Button(label, style, GUILayout.ExpandHeight(true), GUILayout.ExpandWidth(true));
                     }
                 }
             }
