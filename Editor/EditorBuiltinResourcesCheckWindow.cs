@@ -22,9 +22,9 @@ namespace Yorozu.EditorTool
         private Vector2 _scrollPosition;
         
         private readonly string[] _tabToggles = { "Texture", "GUIStyles"};
+        
         private int _tabIndex;
-
-        private Vector2 SizeRange =new Vector2(EditorGUIUtility.singleLineHeight * 2, EditorGUIUtility.singleLineHeight * 4);
+        private Vector2 _sizeRange =new Vector2(EditorGUIUtility.singleLineHeight, EditorGUIUtility.singleLineHeight * 4);
         private float _sizeRate = 0f;
 
         private void OnEnable()
@@ -78,9 +78,11 @@ namespace Yorozu.EditorTool
         private void DrawTexture()
         {
             var windowWidth = position.width - 10f;
-            var size = Mathf.Lerp(SizeRange.x, SizeRange.y, _sizeRate);
-            var rowCount = Mathf.FloorToInt(windowWidth / size);
-            var loopCount = Mathf.CeilToInt(_textures.Length / rowCount);
+            var size = Mathf.Lerp(_sizeRange.x, _sizeRange.y, _sizeRate);
+            var rowCount = Mathf.FloorToInt(windowWidth / (size + 10));
+            var totalSpace = windowWidth - rowCount * size; 
+            var margin = totalSpace / (rowCount + 1);
+            var loopCount = Mathf.CeilToInt(_textures.Length / (float)rowCount);
             float height = 0;
             float width = 0;
             using (var scroll = new EditorGUILayout.ScrollViewScope(_scrollPosition))
@@ -116,7 +118,7 @@ namespace Yorozu.EditorTool
                             width = texture.width * height / texture.height;
                         }
 
-                        rect.xMin = j * size;
+                        rect.xMin = margin + j * (size + margin);
                         rect.height = height;
                         rect.width = width;
 
@@ -124,6 +126,7 @@ namespace Yorozu.EditorTool
                         if (GUI.Button(rect, content, EditorStyles.label))
                         {
                             GUIUtility.systemCopyBuffer = $"EditorGUIUtility.Load(\"{texture.name}\")";
+                            Debug.Log(texture.name);
                         }
 
                         GUI.DrawTexture(rect, texture, ScaleMode.StretchToFill);
