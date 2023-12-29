@@ -1,0 +1,1 @@
+# UnityEditorBuilt-inResourceCheck
