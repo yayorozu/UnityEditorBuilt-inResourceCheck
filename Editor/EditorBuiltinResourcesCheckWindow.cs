@@ -119,7 +119,7 @@ namespace Yorozu.EditorTool
                 var index = 0;
                 Rect rect = new Rect();
                 foreach (var texture in _textures
-                             .Where(v => string.IsNullOrEmpty(_searchText) || v.name.Contains(_searchText, StringComparison.Ordinal)))
+                             .Where(v => string.IsNullOrEmpty(_searchText) || v.name.Contains(_searchText, StringComparison.OrdinalIgnoreCase)))
                 {
                     if (index++ % rowCount == 0)
                     {
@@ -186,7 +186,7 @@ namespace Yorozu.EditorTool
             {
                 _scrollPosition = scroll.scrollPosition;
                 foreach (var style in _editorGUIStyles
-                             .Where(v => string.IsNullOrEmpty(_searchText) || v.name.Contains(_searchText, StringComparison.Ordinal)))
+                             .Where(v => string.IsNullOrEmpty(_searchText) || v.name.Contains(_searchText, StringComparison.OrdinalIgnoreCase)))
                 {
                     using (new EditorGUILayout.HorizontalScope("box"))
                     {
