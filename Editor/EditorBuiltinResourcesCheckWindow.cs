@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
+using UnityEditor.IMGUI.Controls;
 using UnityEngine;
 
 namespace Yorozu.EditorTool
@@ -27,6 +28,14 @@ namespace Yorozu.EditorTool
         private int _tabIndex;
         private Vector2 _sizeRange =new Vector2(EditorGUIUtility.singleLineHeight, EditorGUIUtility.singleLineHeight * 4);
         private float _sizeRate = 0f;
+        private SearchField _search;
+        private string _searchText;
+
+        private static class Styles
+        {
+            public static readonly GUILayoutOption SliderWidth = GUILayout.Width(100f);
+            public static readonly GUILayoutOption SearchWidth = GUILayout.Width(200f);
+        }
 
         private void OnEnable()
         {
@@ -58,6 +67,8 @@ namespace Yorozu.EditorTool
         
         private void OnGUI()
         {
+            _search ??= new SearchField();
+            
             using (new EditorGUILayout.HorizontalScope(EditorStyles.toolbar))
             {
                 _tabIndex = GUILayout.Toolbar(_tabIndex, _tabToggles, new GUIStyle(EditorStyles.toolbarButton),
@@ -65,7 +76,16 @@ namespace Yorozu.EditorTool
 
                 if (_tabIndex == 0)
                 {
-                    _sizeRate = GUILayout.HorizontalSlider(_sizeRate, 0f, 1f, GUILayout.Width(100));
+                    _sizeRate = GUILayout.HorizontalSlider(_sizeRate, 0f, 1f, Styles.SliderWidth);
+                }
+
+                using (var check = new EditorGUI.ChangeCheckScope())
+                {
+                    _searchText = _search.OnToolbarGUI(_searchText, Styles.SearchWidth);
+                    if (check.changed)
+                    {
+                        Apply();
+                    }
                 }
             }
 
@@ -77,6 +97,10 @@ namespace Yorozu.EditorTool
             {
                 DrawGUIStyle();
             }
+        }
+
+        private void Apply()
+        {
         }
 
         private void DrawTexture()
@@ -92,49 +116,47 @@ namespace Yorozu.EditorTool
             using (var scroll = new EditorGUILayout.ScrollViewScope(_scrollPosition))
             {
                 _scrollPosition = scroll.scrollPosition;
-                for (var i = 0; i < loopCount; i++)
+                var index = 0;
+                Rect rect = new Rect();
+                foreach (var texture in _textures
+                             .Where(v => string.IsNullOrEmpty(_searchText) || v.name.Contains(_searchText, StringComparison.Ordinal)))
                 {
-                    // GetRect
-                    var rect = GUILayoutUtility.GetRect(windowWidth - 14, gridSize);
-                    for (int j = 0; j < rowCount; j++)
+                    if (index++ % rowCount == 0)
                     {
-                        int index = i * rowCount + j;
-                        if (index >= _textures.Length)
-                            continue;
-                        
-                        var texture = _textures[index];
-
-                        // アスヒによって制御する
-                        if (texture.width > texture.height)
-                        {
-                            width = Mathf.Min(
-                                Mathf.Max(texture.width, EditorGUIUtility.singleLineHeight),
-                                gridSize
-                            );
-                            height = texture.height * width / texture.width;                            
-                        }
-                        else
-                        {
-                            height = Mathf.Min(
-                                Mathf.Max(texture.height, EditorGUIUtility.singleLineHeight),
-                                gridSize
-                            );
-                            width = texture.width * height / texture.height;
-                        }
-
-                        rect.xMin = margin + j * (gridSize + margin);
-                        rect.height = height;
-                        rect.width = width;
-
-                        var content = new GUIContent("", texture.name);
-                        if (GUI.Button(rect, content, EditorStyles.label))
-                        {
-                            GUIUtility.systemCopyBuffer = $"EditorGUIUtility.Load(\"{texture.name}\")";
-                            Debug.Log(texture.name);
-                        }
-
-                        GUI.DrawTexture(rect, texture, ScaleMode.StretchToFill);
+                        rect = GUILayoutUtility.GetRect(windowWidth - 14, gridSize);
                     }
+                    
+                    // アスヒによって制御する
+                    if (texture.width > texture.height)
+                    {
+                        width = Mathf.Min(
+                            Mathf.Max(texture.width, EditorGUIUtility.singleLineHeight),
+                            gridSize
+                        );
+                        height = texture.height * width / texture.width;                            
+                    }
+                    else
+                    {
+                        height = Mathf.Min(
+                            Mathf.Max(texture.height, EditorGUIUtility.singleLineHeight),
+                            gridSize
+                        );
+                        width = texture.width * height / texture.height;
+                    }
+
+                    rect.xMin = margin + (index % rowCount) * (gridSize + margin);
+                    rect.height = height;
+                    rect.width = width;
+
+                    var content = new GUIContent("", texture.name);
+                    if (GUI.Button(rect, content, EditorStyles.label))
+                    {
+                        GUIUtility.systemCopyBuffer = $"EditorGUIUtility.Load(\"{texture.name}\")";
+                        Debug.Log(texture.name);
+                    }
+
+                    GUI.DrawTexture(rect, texture, ScaleMode.StretchToFill);
+                    
                 }
             }
         }
@@ -163,7 +185,8 @@ namespace Yorozu.EditorTool
             using (var scroll = new GUILayout.ScrollViewScope(_scrollPosition))
             {
                 _scrollPosition = scroll.scrollPosition;
-                foreach (var style in _editorGUIStyles)
+                foreach (var style in _editorGUIStyles
+                             .Where(v => string.IsNullOrEmpty(_searchText) || v.name.Contains(_searchText, StringComparison.Ordinal)))
                 {
                     using (new EditorGUILayout.HorizontalScope("box"))
                     {
@@ -172,9 +195,9 @@ namespace Yorozu.EditorTool
                             Debug.Log(style.name);
                         }
 
-                        GUILayout.Button(GUIContent.none, style, GUILayout.ExpandHeight(true), GUILayout.ExpandWidth(true));
+                        GUILayout.Button(GUIContent.none, style, GUILayout.ExpandWidth(true));
                         GUILayout.Space(5);
-                        GUILayout.Button(label, style, GUILayout.ExpandHeight(true), GUILayout.ExpandWidth(true));
+                        GUILayout.Button(label, style, GUILayout.ExpandWidth(true));
                     }
                 }
             }
